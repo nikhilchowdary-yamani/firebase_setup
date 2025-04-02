@@ -16,7 +16,6 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return const MaterialApp(
-// Remove the debug banner
       debugShowCheckedModeBanner: false,
       title: 'Test',
       home: HomePage(),
@@ -31,11 +30,11 @@ class HomePage extends StatefulWidget {
 }
 
 class _HomePageState extends State<HomePage> {
-// text fields' controllers
   final TextEditingController _nameController = TextEditingController();
   final TextEditingController _priceController = TextEditingController();
   final CollectionReference _products =
       FirebaseFirestore.instance.collection('products');
+
   Future<void> _createOrUpdate([DocumentSnapshot? documentSnapshot]) async {
     String action = 'create';
     if (documentSnapshot != null) {
@@ -43,6 +42,7 @@ class _HomePageState extends State<HomePage> {
       _nameController.text = documentSnapshot['name'];
       _priceController.text = documentSnapshot['price'].toString();
     }
+
     await showModalBottomSheet(
       isScrollControlled: true,
       context: context,
@@ -54,56 +54,56 @@ class _HomePageState extends State<HomePage> {
             right: 20,
             bottom: MediaQuery.of(ctx).viewInsets.bottom + 20,
           ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              TextField(
-                controller: _nameController,
-                decoration: const InputDecoration(labelText: 'Name'),
-              ),
-              TextField(
-                keyboardType: TextInputType.numberWithOptions(decimal: true),
-                controller: _priceController,
-                decoration: const InputDecoration(
-                  labelText: 'Price',
+          child: SingleChildScrollView( // Added SingleChildScrollView here
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                TextField(
+                  controller: _nameController,
+                  decoration: const InputDecoration(labelText: 'Name'),
                 ),
-              ),
-              const SizedBox(
-                height: 20,
-              ),
-              ElevatedButton(
-                child: Text(action == 'create' ? 'Create' : 'Update'),
-                onPressed: () async {
-                  String name = _nameController.text;
-                  double price = double.parse(_priceController.text);
-                  if (name.isNotEmpty && price != null) {
-                    if (action == 'create') {
-// Persist a new product to Firestore
-                      await _products.add({"name": name, "price": price});
+                TextField(
+                  keyboardType: TextInputType.numberWithOptions(decimal: true),
+                  controller: _priceController,
+                  decoration: const InputDecoration(
+                    labelText: 'Price',
+                  ),
+                ),
+                const SizedBox(
+                  height: 20,
+                ),
+                ElevatedButton(
+                  child: Text(action == 'create' ? 'Create' : 'Update'),
+                  onPressed: () async {
+                    String name = _nameController.text;
+                    double price = double.parse(_priceController.text);
+                    if (name.isNotEmpty && price != null) {
+                      if (action == 'create') {
+                        await _products.add({"name": name, "price": price});
+                      }
+                      if (action == 'update') {
+                        await _products.doc(documentSnapshot!.id).update({
+                          "name": name,
+                          "price": price,
+                        });
+                      }
+                      _nameController.text = '';
+                      _priceController.text = '';
+                      Navigator.of(context).pop();
                     }
-                    if (action == 'update') {
-// Update the product
-                      await _products.doc(documentSnapshot!.id).update({
-                        "name": name,
-                        "price": price,
-                      });
-                    }
-                    _nameController.text = '';
-                    _priceController.text = '';
-                    Navigator.of(context).pop();
-                  }
-                },
-              )
-            ],
+                  },
+                )
+              ],
+            ),
           ),
         );
       },
     );
   }
 
-// Deleting a product by id
   Future<void> _deleteProduct(String productId) async {
+    await _products.doc(productId).delete();
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
         content: Text('You have successfully deleted a product'),
@@ -115,9 +115,8 @@ class _HomePageState extends State<HomePage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('CRUD operations'),
+        title: const Text('Inventory Management'),
       ),
-// Using StreamBuilder to display all products from Firestore in real-time
       body: StreamBuilder(
         stream: _products.snapshots(),
         builder: (context, AsyncSnapshot<QuerySnapshot> streamSnapshot) {
@@ -142,8 +141,7 @@ class _HomePageState extends State<HomePage> {
                           ),
                           IconButton(
                             icon: const Icon(Icons.delete),
-                            onPressed: () =>
-                                _deleteProduct(documentSnapshot.id),
+                            onPressed: () => _deleteProduct(documentSnapshot.id),
                           ),
                         ],
                       ),
@@ -158,7 +156,6 @@ class _HomePageState extends State<HomePage> {
           );
         },
       ),
-// Add new product
       floatingActionButton: FloatingActionButton(
         onPressed: () => _createOrUpdate(),
         child: const Icon(Icons.add),
